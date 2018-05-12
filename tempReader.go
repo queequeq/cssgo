@@ -12,13 +12,13 @@ import (
 func cpuTemp() string {
 	cmd := exec.Command("vcgencmd", "measure_temp") // CPU-Temperatur auslesen
 	out, err := cmd.Output()
+	fmt.Println(string(out))
 
 	if err != nil {
 		fmt.Println(err)
 		return "0.0"
 	}
 
-	fmt.Println(strings.Trim(string(out), "temp='C"))
 	return strings.Trim(string(out), "temp='C") // Nicht benötigten Teil des Rückgabewerts entfernen
 }
 
