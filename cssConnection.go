@@ -6,7 +6,7 @@ import (
 	"github.com/gocql/gocql"
 )
 
-func fillCluster(ip string) {
+func fillCluster(ip string, count int) {
 	cluster := gocql.NewCluster(ip)
 	cluster.Keyspace = "demo"
 	session, err := cluster.CreateSession()
@@ -19,7 +19,7 @@ func fillCluster(ip string) {
 
 	stmt := session.Query("CREATE TABLE IF NOT EXISTS cpuStats (timestamp timestamp PRIMARY KEY, temperature float, frequency int);")
 	stmt.Exec()
-	for i := 0; i < 10; i++ {
+	for i := 0; i < count; i++ {
 		temp := cpuTemp()
 		freq := cpuFreq()
 		stmt = session.Query("INSERT INTO cpuStats (timestamp, temperature, frequency) VALUES (toTimestamp(now()), " + temp + ", " + freq + ");")

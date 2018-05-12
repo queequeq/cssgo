@@ -43,5 +43,5 @@ func cpuTemp() string {
 // Generiert einen zufälligen Temperaturwert und gibt diesen als String zurück
 func randomTemp() string {
 	temp := 50.0 - (10 * rand.Float64())
-	return strconv.FormatFloat(temp, 'f', 3, 64)
+	return strconv.FormatFloat(temp, 'f', 3, 64) //Float nach String konvertieren mit Zielformat -ddd.dddd, drei Nachkommastellen und float64 als Ausgangstyp
 }
