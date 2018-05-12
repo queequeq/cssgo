@@ -12,6 +12,7 @@ import (
 func cpuTemp() string {
 	cmd := exec.Command("vcgencmd", "measure_temp") // CPU-Temperatur auslesen
 	out, err := cmd.Output()
+	fmt.Println(string(out))
 
 	if err != nil {
 		fmt.Println(err)

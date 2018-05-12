@@ -22,7 +22,10 @@ func fillCluster(ip string) {
 	for i := 0; i < 10; i++ {
 		value := cpuTemp()
 		stmt = session.Query("INSERT INTO cpuTemp (timestamp, temperature) VALUES (toTimestamp(now()), " + value + ");")
-		stmt.Exec()
+		err := stmt.Exec()
+		if err != nil {
+			fmt.Println(err)
+		}
 	}
 
 	session.Close()
