@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"strconv"
+	"time"
 )
 
 func main() {
@@ -19,5 +20,8 @@ func main() {
 	}
 
 	fmt.Println("Erstelle " + strconv.Itoa(count) + " Einträge...")
+	start := time.Now()
 	fillCluster("192.168.0.178", count)
+	elapsed := time.Since(start)
+	fmt.Println(strconv.Itoa(count) + "Einträge erstellt in " + elapsed.String())
 }
