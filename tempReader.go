@@ -18,12 +18,14 @@ func cpuTemp() string {
 		return "0.0"
 	}
 
-	fmt.Println(strings.Trim(string(out), "temp='C"))
-	return strings.Trim(string(out), "temp='C") // Nicht benötigten Teil des Rückgabewerts entfernen
+	temp := string(out)
+	temp = strings.TrimSpace(temp)       // Zeilenumbruch im Rückgabewert entfernen
+	temp = strings.Trim(temp, "temp='C") // Nicht benötigte Zeichen im Rückgabewert entfernen
+	return temp
 }
 
 // Generiert einen zufälligen Temperaturwert und gibt diesen als String zurück
 func randomTemp() string {
-	value := 50.0 - (10 * rand.Float64())
-	return strconv.FormatFloat(value, 'f', 3, 64)
+	temp := 50.0 - (10 * rand.Float64())
+	return strconv.FormatFloat(temp, 'f', 3, 64)
 }
