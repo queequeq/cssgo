@@ -17,11 +17,12 @@ func fillCluster(ip string) {
 		return
 	}
 
-	stmt := session.Query("CREATE TABLE IF NOT EXISTS cpuTemp (timestamp timestamp PRIMARY KEY, temperature float);")
+	stmt := session.Query("CREATE TABLE IF NOT EXISTS cpuStats (timestamp timestamp PRIMARY KEY, temperature float, frequency int);")
 	stmt.Exec()
 	for i := 0; i < 10; i++ {
-		value := cpuTemp()
-		stmt = session.Query("INSERT INTO cpuTemp (timestamp, temperature) VALUES (toTimestamp(now()), " + value + ");")
+		temp := cpuTemp()
+		freq := cpuFreq()
+		stmt = session.Query("INSERT INTO cpuTemp (timestamp, temperature, frequency) VALUES (toTimestamp(now()), " + temp + ", " + freq + ");")
 		err := stmt.Exec()
 		if err != nil {
 			fmt.Println(err)

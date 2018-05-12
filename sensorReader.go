@@ -8,6 +8,22 @@ import (
 	"strings"
 )
 
+// Liest die CPU-Taktfrequenz des Raspberry Pi aus und gibt diese als String zurück
+func cpuFreq() string {
+	cmd := exec.Command("vcgencmd", "measure_clock", "arm")
+	out, err := cmd.Output()
+
+	if err != nil {
+		fmt.Println(err)
+		return "0"
+	}
+
+	freq := string(out)
+	freq = strings.TrimSpace(freq)              // Zeilenumbruch im Rückgabewert entfernen
+	freq = strings.Trim(freq, "frequency(45)=") // Nicht benötigte Zeichen im Rückgabewert entfernen
+	return freq
+}
+
 // Liest die CPU-Temperatur des Raspberry Pi aus und gibt diese als String zurück
 func cpuTemp() string {
 	cmd := exec.Command("vcgencmd", "measure_temp") // CPU-Temperatur auslesen
