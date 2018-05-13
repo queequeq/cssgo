@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"strconv"
 	"time"
 
 	"github.com/gocql/gocql"
@@ -30,10 +29,9 @@ func fillCluster(ip string, count int) {
 
 func insertSerial(session *gocql.Session, count int) {
 	for i := 0; i < count; i++ {
-		time := time.Now().Format("2006-01-02 15:04:05.000 -0700")
 		temp := cpuTemp()
 		freq := cpuFreq()
-		stmt := session.Query("INSERT INTO cpuStats (timestamp, temperature, frequency) VALUES ('" + time + "', " + temp + ", " + freq + ");")
+		stmt := session.Query("INSERT INTO cpuStats (timestamp, temperature, frequency) VALUES (toTimestamp(now()), " + temp + ", " + freq + ");")
 		err := stmt.Exec()
 		if err != nil {
 			fmt.Println(err)
@@ -50,7 +48,6 @@ func insertBatch(session *gocql.Session, count int) {
 		freq := cpuFreq()
 		batch.Query("INSERT INTO cpuStats (timestamp, temperature, frequency) VALUES ('" + time + "', " + temp + ", " + freq + ");")
 	}
-	fmt.Println(strconv.Itoa(batch.Size()))
 
 	err := session.ExecuteBatch(batch)
 	if err != nil {
@@ -82,5 +79,5 @@ func insertCSV(session *gocql.Session, count int) {
 		fmt.Println(err)
 	}
 
-	//os.Remove("/tmp/data.csv")
+	os.Remove("/tmp/data.csv")
 }
