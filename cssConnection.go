@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/gocql/gocql"
@@ -49,6 +50,7 @@ func insertBatch(session *gocql.Session, count int) {
 		freq := cpuFreq()
 		batch.Query("INSERT INTO cpuStats (timestamp, temperature, frequency) VALUES (toTimestamp(now()), " + temp + ", " + freq + ");")
 	}
+	fmt.Println(strconv.Itoa(batch.Size()))
 
 	err := session.ExecuteBatch(batch)
 	if err != nil {
@@ -56,6 +58,7 @@ func insertBatch(session *gocql.Session, count int) {
 	}
 }
 
+// Funktioniert nicht, weil COPY FROM nur in cqlsh existiert
 func insertCSV(session *gocql.Session, count int) {
 	file, err := os.Create("/tmp/data.csv")
 	if err != nil {
