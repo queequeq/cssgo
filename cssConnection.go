@@ -22,20 +22,37 @@ func fillCluster(ip string, count int) {
 	stmt := session.Query("CREATE TABLE IF NOT EXISTS cpuStats (timestamp timestamp PRIMARY KEY, temperature float, frequency int);")
 	stmt.Exec()
 
-	insertCSV(session, count)
+	insertBatch(session, count)
 
 	session.Close()
 }
 
 func insertSerial(session *gocql.Session, count int) {
 	for i := 0; i < count; i++ {
+		time := time.Now().String()
 		temp := cpuTemp()
 		freq := cpuFreq()
-		stmt := session.Query("INSERT INTO cpuStats (timestamp, temperature, frequency) VALUES (toTimestamp(now()), " + temp + ", " + freq + ");")
+		stmt := session.Query("INSERT INTO cpuStats (timestamp, temperature, frequency) VALUES (" + time + ", " + temp + ", " + freq + ");")
 		err := stmt.Exec()
 		if err != nil {
 			fmt.Println(err)
 		}
+	}
+}
+
+func insertBatch(session *gocql.Session, count int) {
+	batch := gocql.NewBatch(0) // BatchType 0 = UnloggedBatch
+
+	for i := 0; i < count; i++ {
+		time := time.Now().String()
+		temp := cpuTemp()
+		freq := cpuFreq()
+		batch.Query("INSERT INTO cpuStats (timestamp, temperature, frequency) VALUES (" + time + ", " + temp + ", " + freq + ");")
+	}
+
+	err := session.ExecuteBatch(batch)
+	if err != nil {
+		fmt.Println(err)
 	}
 }
 
