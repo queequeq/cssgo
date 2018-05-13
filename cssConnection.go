@@ -41,7 +41,7 @@ func insertSerial(session *gocql.Session, count int) {
 }
 
 func insertBatch(session *gocql.Session, count int) {
-	batch := gocql.NewBatch(0) // BatchType 0 = UnloggedBatch
+	batch := session.NewBatch(0) // BatchType 0 = LoggedBatch
 
 	for i := 0; i < count; i++ {
 		//time := time.Now().String()
