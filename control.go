@@ -21,7 +21,7 @@ func main() {
 
 	fmt.Println("Erstelle " + strconv.Itoa(count) + " Einträge...")
 	start := time.Now()
-	fillCluster("192.168.0.178", count)
+	fillCluster("192.168.178.60", count)
 	elapsed := time.Since(start)
 	fmt.Println(strconv.Itoa(count) + " Einträge erstellt in " + elapsed.String())
 }
