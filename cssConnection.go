@@ -62,5 +62,5 @@ func insertCSV(session *gocql.Session, count int) {
 		fmt.Println(err)
 	}
 
-	os.Remove("/tmp/data.csv")
+	//os.Remove("/tmp/data.csv")
 }
