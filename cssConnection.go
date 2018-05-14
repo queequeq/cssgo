@@ -38,9 +38,10 @@ func fillCluster(ip string, count int) {
 }
 
 func insertSingle(session *gocql.Session, ch chan int) {
+	time := time.Now().Format("2006-01-02 15:04:05.000 -0700")
 	temp := cpuTemp()
 	freq := cpuFreq()
-	stmt := session.Query("INSERT INTO cpuStats (timestamp, temperature, frequency) VALUES (toTimestamp(now()), " + temp + ", " + freq + ");")
+	stmt := session.Query("INSERT INTO cpuStats (timestamp, temperature, frequency) VALUES ('" + time + "', " + temp + ", " + freq + ");")
 	err := stmt.Exec()
 	if err != nil {
 		fmt.Println(err)
