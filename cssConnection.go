@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"strconv"
 	"time"
 
 	"github.com/gocql/gocql"
@@ -23,7 +22,7 @@ func fillCluster(ip string, count int) {
 	stmt := session.Query("CREATE TABLE IF NOT EXISTS cpuStats (timestamp timestamp PRIMARY KEY, temperature float, frequency int);")
 	stmt.Exec()
 
-	insertSerialImproved(session, count)
+	insertConcurrent(session, count)
 
 	session.Close()
 }
@@ -40,7 +39,7 @@ func insertSerial(session *gocql.Session, count int) {
 	}
 }
 
-// Minimal schneller als Serial
+// Etwa 10% schneller als Serial
 func insertSerialImproved(session *gocql.Session, count int) {
 	for i := 0; i < count; i++ {
 		tempChan := make(chan string)
@@ -62,7 +61,7 @@ func insertConcurrent(session *gocql.Session, count int) {
 		temp := cpuTemp()
 		freq := cpuFreq()
 		go func(i int) {
-			stmt := session.Query("INSERT INTO cpuStats (timestamp, temperature, frequency) VALUES (" + strconv.Itoa(i) + ", " + temp + ", " + freq + ");")
+			stmt := session.Query("INSERT INTO cpuStats (timestamp, temperature, frequency) VALUES (toTimestamp(now()), " + temp + ", " + freq + ");")
 			err := stmt.Exec()
 			if err != nil {
 				fmt.Println(err)

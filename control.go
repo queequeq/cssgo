@@ -14,7 +14,6 @@ func main() {
 	count, err := strconv.Atoi(input)
 	// Überprüfen, ob eine Zahl eingegeben wurde und ob diese im zulässigen Wertebereich liegt
 	if err != nil || count < 0 || count > 100000 {
-
 		fmt.Println("Fehler: Ungültiger Wert!")
 		return
 	}
