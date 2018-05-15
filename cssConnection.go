@@ -22,31 +22,9 @@ func fillCluster(ip string, count int) {
 	stmt := session.Query("CREATE TABLE IF NOT EXISTS cpuStats (timestamp timestamp PRIMARY KEY, temperature float, frequency int);")
 	stmt.Exec()
 
-	ch := make(chan int)
-	counter := 0
-	for i := 0; i < count; i++ {
-		go insertSingle(session, ch)
-	}
-	for {
-		counter = counter + <-ch
-		if counter == count {
-			break
-		}
-	}
+	insertSerial(session, count)
 
 	session.Close()
-}
-
-func insertSingle(session *gocql.Session, ch chan int) {
-	time := time.Now().Format("2006-01-02 15:04:05.000 -0700")
-	temp := cpuTemp()
-	freq := cpuFreq()
-	stmt := session.Query("INSERT INTO cpuStats (timestamp, temperature, frequency) VALUES ('" + time + "', " + temp + ", " + freq + ");")
-	err := stmt.Exec()
-	if err != nil {
-		fmt.Println(err)
-	}
-	ch <- 1
 }
 
 func insertSerial(session *gocql.Session, count int) {
@@ -58,6 +36,27 @@ func insertSerial(session *gocql.Session, count int) {
 		if err != nil {
 			fmt.Println(err)
 		}
+	}
+}
+
+func insertConcurrent(session *gocql.Session, count int) {
+	done := make(chan bool)
+
+	for i := 0; i < count; i++ {
+		go func() {
+			temp := cpuTemp()
+			freq := cpuFreq()
+			stmt := session.Query("INSERT INTO cpuStats (timestamp, temperature, frequency) VALUES (toTimestamp(now()), " + temp + ", " + freq + ");")
+			err := stmt.Exec()
+			if err != nil {
+				fmt.Println(err)
+			}
+			done <- true
+		}()
+	}
+
+	for k := 0; k < count; k++ {
+		<-done
 	}
 }
 
