@@ -23,7 +23,7 @@ func fillCluster(ip string, count int) {
 	stmt := session.Query("CREATE TABLE IF NOT EXISTS cpuStats (timestamp timestamp PRIMARY KEY, temperature float, frequency int);")
 	stmt.Exec()
 
-	insertSerial(session, count)
+	insertConcurrent(session, count)
 
 	session.Close()
 }
@@ -41,7 +41,7 @@ func insertSerial(session *gocql.Session, count int) {
 }
 
 func insertConcurrent(session *gocql.Session, count int) {
-	done := make(chan bool)
+	done := make(chan bool, 10)
 
 	for i := 0; i < count; i++ {
 		go func(i int) {
