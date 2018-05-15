@@ -40,12 +40,13 @@ func insertSerial(session *gocql.Session, count int) {
 	}
 }
 
+// Minimal schneller als Serial
 func insertSerialImproved(session *gocql.Session, count int) {
 	for i := 0; i < count; i++ {
 		tempChan := make(chan string)
 		freqChan := make(chan string)
-		go func(ch chan string) { tempChan <- cpuTemp() }(tempChan)
-		go func(ch chan string) { freqChan <- cpuFreq() }(freqChan)
+		go cpuTempNew(tempChan)
+		go cpuFreqNew(freqChan)
 		stmt := session.Query("INSERT INTO cpuStats (timestamp, temperature, frequency) VALUES (toTimestamp(now()), " + <-tempChan + ", " + <-freqChan + ");")
 		err := stmt.Exec()
 		if err != nil {
@@ -58,9 +59,9 @@ func insertConcurrent(session *gocql.Session, count int) {
 	done := make(chan bool, 10)
 
 	for i := 0; i < count; i++ {
+		temp := cpuTemp()
+		freq := cpuFreq()
 		go func(i int) {
-			temp := cpuTemp()
-			freq := cpuFreq()
 			stmt := session.Query("INSERT INTO cpuStats (timestamp, temperature, frequency) VALUES (" + strconv.Itoa(i) + ", " + temp + ", " + freq + ");")
 			err := stmt.Exec()
 			if err != nil {
