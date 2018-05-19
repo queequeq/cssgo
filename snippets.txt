@@ -1,0 +1,118 @@
+// -------------------- sensorReader --------------------
+// Liest die CPU-Taktfrequenz des Raspberry Pi aus und gibt diese als String zurück
+func cpuFreq() string {
+	cmd := exec.Command("vcgencmd", "measure_clock", "arm")
+	out, err := cmd.Output()
+
+	if err != nil {
+		fmt.Println(err)
+		return "0"
+	}
+
+	freq := string(out)
+	freq = strings.TrimSpace(freq)              // Zeilenumbruch im Rückgabewert entfernen
+	freq = strings.Trim(freq, "frequency(45)=") // Nicht benötigte Zeichen im Rückgabewert entfernen
+	return freq
+}
+
+// Liest die CPU-Temperatur des Raspberry Pi aus und gibt diese als String zurück
+func cpuTemp() string {
+	cmd := exec.Command("vcgencmd", "measure_temp") // CPU-Temperatur auslesen
+	out, err := cmd.Output()
+
+	if err != nil {
+		fmt.Println(err)
+		return "0.0"
+	}
+
+	temp := string(out)
+	temp = strings.TrimSpace(temp)       // Zeilenumbruch im Rückgabewert entfernen
+	temp = strings.Trim(temp, "temp='C") // Nicht benötigte Zeichen im Rückgabewert entfernen
+	return temp
+}
+
+// Generiert einen zufälligen Temperaturwert und gibt diesen als String zurück
+func randomTemp() string {
+	temp := 50.0 - (10 * rand.Float64())
+	return strconv.FormatFloat(temp, 'f', 3, 64) //Float nach String konvertieren mit Zielformat -ddd.dddd, drei Nachkommastellen und float64 als Ausgangstyp
+}
+
+// -------------------- cssConnection --------------------
+// Etwa 10% langsamer als mit goroutines
+func insertSerial(session *gocql.Session, count int) {
+	for i := 0; i < count; i++ {
+		temp := cpuTemp()
+		freq := cpuFreq()
+		stmt := session.Query("INSERT INTO cpuStats (timestamp, temperature, frequency) VALUES (toTimestamp(now()), " + temp + ", " + freq + ");")
+		err := stmt.Exec()
+		if err != nil {
+			fmt.Println(err)
+		}
+	}
+}
+
+// Einträge gehen verloren
+func insertConcurrent(session *gocql.Session, count int) {
+	done := make(chan bool, 10)
+
+	for i := 0; i < count; i++ {
+		temp := cpuTemp()
+		freq := cpuFreq()
+		go func(i int) {
+			stmt := session.Query("INSERT INTO cpuStats (timestamp, temperature, frequency) VALUES (toTimestamp(now()), " + temp + ", " + freq + ");")
+			err := stmt.Exec()
+			if err != nil {
+				fmt.Println(err)
+			}
+			done <- true
+		}(i)
+	}
+
+	for k := 0; k < count; k++ {
+		<-done
+	}
+}
+
+// Stürzt ab sobald Batch zu viele Elemente enthält
+func insertBatch(session *gocql.Session, count int) {
+	batch := session.NewBatch(0) // BatchType 0 = LoggedBatch
+
+	for i := 0; i < count; i++ {
+		time := time.Now().Format("2006-01-02 15:04:05.000 -0700")
+		temp := cpuTemp()
+		freq := cpuFreq()
+		batch.Query("INSERT INTO cpuStats (timestamp, temperature, frequency) VALUES ('" + time + "', " + temp + ", " + freq + ");")
+	}
+
+	err := session.ExecuteBatch(batch)
+	if err != nil {
+		fmt.Println(err)
+	}
+}
+
+// Funktioniert nicht, weil COPY FROM nur in cqlsh existiert
+func insertCSV(session *gocql.Session, count int) {
+	file, err := os.Create("/tmp/data.csv")
+	if err != nil {
+		fmt.Println("Fehler: CSV-Datei konnte nicht erstellt werden!")
+		return
+	}
+
+	for i := 0; i < count; i++ {
+		time := time.Now().String()
+		temp := cpuTemp()
+		freq := cpuFreq()
+		file.WriteString(time + ", " + temp + ", " + freq + "\n")
+	}
+
+	file.Sync()
+	file.Close()
+
+	stmt := session.Query("COPY cpuStats (timestamp, temperature, frequency) FROM '/tmp/data.csv';")
+	err = stmt.Exec()
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	os.Remove("/tmp/data.csv")
+}
