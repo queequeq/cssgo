@@ -1,4 +1,5 @@
-// -------------------- sensorReader --------------------
+// Experimente und frühere Versionen von Funktionen
+
 // Liest die CPU-Taktfrequenz des Raspberry Pi aus und gibt diese als String zurück
 func cpuFreq() string {
 	cmd := exec.Command("vcgencmd", "measure_clock", "arm")
@@ -37,7 +38,6 @@ func randomTemp() string {
 	return strconv.FormatFloat(temp, 'f', 3, 64) //Float nach String konvertieren mit Zielformat -ddd.dddd, drei Nachkommastellen und float64 als Ausgangstyp
 }
 
-// -------------------- cssConnection --------------------
 // Etwa 10% langsamer als mit goroutines
 func insertSerial(session *gocql.Session, count int) {
 	for i := 0; i < count; i++ {
