@@ -21,11 +21,11 @@ func main() {
 		return
 	}
 
-	fmt.Println("Wie viele Einträge sollen erstellt werden? (Gültiger Bereich: 0 bis 1000000)")
+	fmt.Println("Wie viele Einträge sollen erstellt werden? (Gültiger Bereich: 0 bis 10000000)")
 	fmt.Scanln(&input)
 	count, err := strconv.Atoi(input)
 	// Überprüfen, ob eine Zahl eingegeben wurde und ob diese im zulässigen Wertebereich liegt
-	if err != nil || count < 0 || count > 1000000 {
+	if err != nil || count < 0 || count > 10000000 {
 		fmt.Println("Fehler: Ungültiger Wert")
 		return
 	}
