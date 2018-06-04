@@ -47,7 +47,7 @@ func populateCluster(ip string, count int) {
 	defer session.Close()
 
 	// Tabelle in der Datenbank erstellen, falls diese noch nicht vorhanden ist. Abbrechen, falls beim Erstellen ein Fehler auftritt
-	stmt := session.Query("CREATE TABLE IF NOT EXISTS cpuStats (timestamp timestamp PRIMARY KEY, temperature float, frequency int)")
+	stmt := session.Query("CREATE TABLE IF NOT EXISTS cpuStats (timestamp bigint PRIMARY KEY, temperature float, frequency int)")
 	err = stmt.Exec()
 	if err != nil {
 		fmt.Println(err)
@@ -65,12 +65,14 @@ func populateCluster(ip string, count int) {
 		go cpuTemp(tempChan)
 		go cpuFreq(freqChan)
 
-		// Werte aus den Channels auslesen und Eintrag in die Datenbank schreiben. Abbrechen, falls ein Fehler auftritt
-		stmt = session.Query("INSERT INTO cpuStats (timestamp, temperature, frequency) VALUES (toTimestamp(now()), ?, ?)", <-tempChan, <-freqChan)
+		// Aktuelle Unixzeit ermitteln
+		timestamp := time.Now().UnixNano()
+
+		// Werte aus den Channels auslesen und Eintrag in die Datenbank schreiben. Fehler ausgeben, falls einer auftritt
+		stmt = session.Query("INSERT INTO cpuStats (timestamp, temperature, frequency) VALUES (?, ?, ?)", timestamp, <-tempChan, <-freqChan)
 		err := stmt.Exec()
 		if err != nil {
 			fmt.Println(err)
-			return
 		}
 	}
 }
