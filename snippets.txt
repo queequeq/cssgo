@@ -116,3 +116,65 @@ func insertCSV(session *gocql.Session, count int) {
 
 	os.Remove("/tmp/data.csv")
 }
+
+// Letzter Versuch zum Einfügen mit Goroutines, leider immer wieder timeout
+func populateCluster(ip string, count int) {
+	// Starten des Timers durch Ausführen des Arguments. Beim Verlassen der umgebenden Funktion wird dieser automatisch angehalten
+	defer timer(time.Now())
+
+	// Cluster-Konfiguration erstellen, Verbindung aufbauen und diese überprüfen
+	cluster := gocql.NewCluster(ip)
+	cluster.Keyspace = "data"
+	session, err := cluster.CreateSession()
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Println("Verbunden mit " + ip)
+
+	// Verbindung beenden, sobald die umgebende Funktion verlassen wird
+	defer session.Close()
+
+	// Tabelle in der Datenbank erstellen, falls diese noch nicht vorhanden ist. Abbrechen, falls beim Erstellen ein Fehler auftritt
+	stmt := session.Query("CREATE TABLE IF NOT EXISTS cpuStats (timestamp timestamp PRIMARY KEY, temperature float, frequency int)")
+	err = stmt.Exec()
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	var wg sync.WaitGroup
+	wg.Add(count)
+	limit := make(chan int, 10)
+
+	// Vom User angegebene Anzahl ein Einträgen erzeugen und in die Datenbank einfügen
+	fmt.Println("Erstelle " + strconv.Itoa(count) + " Einträge...")
+	for i := 0; i < count; i++ {
+		// Channels vom Typ String erzeugen
+		tempChan := make(chan float32)
+		freqChan := make(chan int)
+
+		// Goroutinen starten und Channels übergeben
+		go cpuTemp(tempChan)
+		go cpuFreq(freqChan)
+
+		temp := <-tempChan
+		freq := <-freqChan
+
+		// Werte aus den Channels auslesen und Eintrag in die Datenbank schreiben. Abbrechen, falls ein Fehler auftritt
+		go func(session *gocql.Session, temp float32, freq int) {
+			defer wg.Done()
+			limit <- 1
+
+			stmt = session.Query("INSERT INTO cpuStats (timestamp, temperature, frequency) VALUES (toTimestamp(now()), ?, ?)", temp, freq)
+			err := stmt.Exec()
+			if err != nil {
+				fmt.Println(err)
+			}
+
+			<-limit
+		}(session, temp, freq)
+	}
+
+	wg.Wait()
+}

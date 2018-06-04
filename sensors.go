@@ -18,11 +18,13 @@ func cpuTemp(tempChan chan float32) {
 		return
 	}
 
-	// Rückgabewert in String umwandeln, alle nicht benötigten Zeichen entfernen und Wert in den Channel ausgeben
+	// Rückgabewert in String umwandeln und lle nicht benötigten Zeichen entfernen
 	tempStr := string(out)
 	tempStr = strings.TrimSpace(tempStr)
 	tempStr = strings.Trim(tempStr, "temp='C")
 	temp, _ := strconv.ParseFloat(tempStr, 32)
+
+	// String in Float umwandeln und Wert in den Channel schreiben
 	tempChan <- float32(temp)
 }
 
@@ -37,10 +39,12 @@ func cpuFreq(freqChan chan int) {
 		return
 	}
 
-	// Rückgabewert in String umwandeln, alle nicht benötigten Zeichen entfernen und Wert in den Channel ausgeben
+	// Rückgabewert in String umwandeln und alle nicht benötigten Zeichen entfernen
 	freqStr := string(out)
 	freqStr = strings.TrimSpace(freqStr)
 	freqStr = strings.Trim(freqStr, "frequency(45)=")
+
+	// String in Integer umwandeln und Wert in den Channel schreiben
 	freq, _ := strconv.Atoi(freqStr)
 	freqChan <- freq
 }

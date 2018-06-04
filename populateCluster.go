@@ -5,22 +5,22 @@ import (
 	"fmt"
 	"net"
 	"strconv"
-	"sync"
 	"time"
 
 	"github.com/gocql/gocql"
 )
 
 func main() {
-	// IP-Adresse und Anzahl der zu erstellenden Einträge werden über Flags abgefragt
-	ipPtr := flag.String("ip", "", "IP-Adresse einer der Nodes im Cluster")
-	countPtr := flag.Int("n", 0, "Anzahl der Einträge, die eingefügt werden sollen")
+	// Definition und Parsen der Flags und Auslesen der Werte
+	ipPtr := flag.String("ip", "", "IP-address of a node in the cluster")
+	countPtr := flag.Int("n", 0, "number of records to be inserted")
 	flag.Parse()
 	ip := *ipPtr
 	count := *countPtr
 
 	// Überprüfen, ob eine IP-Adresse und eine Zahl größer 0 angegeben wurden
 	if net.ParseIP(ip) == nil || count < 0 {
+		fmt.Println("Found flag(s) with invalid values. Please try again:")
 		flag.PrintDefaults()
 		return
 	}
@@ -28,10 +28,10 @@ func main() {
 	populateCluster(ip, count)
 }
 
-// Stellt eine Verbindung zum Cluster mit der angegebenen IP-Adresse her und fügt die angegebene Anzahl an Einträgen ein
+// Stellt eine Verbindung zur Node mit der angegebenen IP-Adresse her und fügt die angegebene Anzahl an Einträgen ein
 func populateCluster(ip string, count int) {
 	// Starten des Timers durch Ausführen des Arguments. Beim Verlassen der umgebenden Funktion wird dieser automatisch angehalten
-	defer timer(time.Now())
+	defer stopTimer(time.Now())
 
 	// Cluster-Konfiguration erstellen, Verbindung aufbauen und diese überprüfen
 	cluster := gocql.NewCluster(ip)
@@ -41,7 +41,7 @@ func populateCluster(ip string, count int) {
 		fmt.Println(err)
 		return
 	}
-	fmt.Println("Verbunden mit " + ip)
+	fmt.Println("Connected to " + ip)
 
 	// Verbindung beenden, sobald die umgebende Funktion verlassen wird
 	defer session.Close()
@@ -54,12 +54,8 @@ func populateCluster(ip string, count int) {
 		return
 	}
 
-	var wg sync.WaitGroup
-	wg.Add(count)
-	limit := make(chan int, 10)
-
 	// Vom User angegebene Anzahl ein Einträgen erzeugen und in die Datenbank einfügen
-	fmt.Println("Erstelle " + strconv.Itoa(count) + " Einträge...")
+	fmt.Println("Generating " + strconv.Itoa(count) + " records...")
 	for i := 0; i < count; i++ {
 		// Channels vom Typ String erzeugen
 		tempChan := make(chan float32)
@@ -69,30 +65,18 @@ func populateCluster(ip string, count int) {
 		go cpuTemp(tempChan)
 		go cpuFreq(freqChan)
 
-		temp := <-tempChan
-		freq := <-freqChan
-
 		// Werte aus den Channels auslesen und Eintrag in die Datenbank schreiben. Abbrechen, falls ein Fehler auftritt
-		go func(session *gocql.Session, temp float32, freq int) {
-			defer wg.Done()
-			limit <- 1
-
-			stmt = session.Query("INSERT INTO cpuStats (timestamp, temperature, frequency) VALUES (toTimestamp(now()), ?, ?)", temp, freq)
-			err := stmt.Exec()
-			if err != nil {
-				fmt.Println(err)
-				//os.Exit(1)
-			}
-
-			<-limit
-		}(session, temp, freq)
+		stmt = session.Query("INSERT INTO cpuStats (timestamp, temperature, frequency) VALUES (toTimestamp(now()), ?, ?)", <-tempChan, <-freqChan)
+		err := stmt.Exec()
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
 	}
-
-	wg.Wait()
 }
 
 // Gibt die Differenz zwischen dem übergebenen Zeitpunkt und dem aktuellen Zeitpunkt aus
-func timer(start time.Time) {
+func stopTimer(start time.Time) {
 	elapsed := time.Since(start)
-	fmt.Println("Dauer: " + elapsed.String())
+	fmt.Println("Time elapsed: " + elapsed.String())
 }
