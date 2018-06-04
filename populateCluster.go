@@ -12,40 +12,19 @@ import (
 )
 
 func main() {
-	//var ip string
-	//var input string
-
+	// IP-Adresse und Anzahl der zu erstellenden Einträge werden über Flags abgefragt
 	ipPtr := flag.String("ip", "", "IP-Adresse einer der Nodes im Cluster")
 	countPtr := flag.Int("n", 0, "Anzahl der Einträge, die eingefügt werden sollen")
 	flag.Parse()
 	ip := *ipPtr
 	count := *countPtr
-	fmt.Println("Eingegebene IP:", ip)
-	fmt.Println("Anzahl:", count)
 
-	//fmt.Println("Bitte IP einer der Nodes im Cluster angeben:")
-	//fmt.Scanln(&ip)
-	// Überprüfen, ob eine IP-Adresse eingegeben wurde
-	if net.ParseIP(ip) == nil {
+	// Überprüfen, ob eine IP-Adresse und eine Zahl größer 0 angegeben wurden
+	if net.ParseIP(ip) == nil || count < 0 {
 		flag.PrintDefaults()
 		return
 	}
 
-	//fmt.Println("Wie viele Einträge sollen erstellt werden? (Gültiger Bereich: 0 bis 10000000)")
-	//fmt.Scanln(&input)
-	//count, err := strconv.Atoi(input)
-	// Überprüfen, ob eine Zahl eingegeben wurde und ob diese im zulässigen Wertebereich liegt
-	/*if err != nil || count < 0 || count > 10000000 {
-		fmt.Println("Fehler: Ungültiger Wert")
-		return
-	}*/
-
-	if count < 0 || count > 10000000 {
-		flag.PrintDefaults()
-		return
-	}
-
-	fmt.Println("Erstelle " + strconv.Itoa(count) + " Einträge...")
 	populateCluster(ip, count)
 }
 
@@ -62,13 +41,14 @@ func populateCluster(ip string, count int) {
 		fmt.Println(err)
 		return
 	}
+	fmt.Println("Verbunden mit " + ip)
 
-	// Verbindung beenden, sobald die Funktion verlassen wird
+	// Verbindung beenden, sobald die umgebende Funktion verlassen wird
 	defer session.Close()
 
 	// Tabelle in der Datenbank erstellen, falls diese noch nicht vorhanden ist. Abbrechen, falls beim Erstellen ein Fehler auftritt
-	stmt := session.Query("CREATE TABLE IF NOT EXISTS cpuStats (timestamp timestamp PRIMARY KEY, temperature float, frequency int);")
-	stmt.Exec()
+	stmt := session.Query("CREATE TABLE IF NOT EXISTS cpuStats (timestamp timestamp PRIMARY KEY, temperature float, frequency int)")
+	err = stmt.Exec()
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -79,6 +59,7 @@ func populateCluster(ip string, count int) {
 	limit := make(chan int, 10)
 
 	// Vom User angegebene Anzahl ein Einträgen erzeugen und in die Datenbank einfügen
+	fmt.Println("Erstelle " + strconv.Itoa(count) + " Einträge...")
 	for i := 0; i < count; i++ {
 		// Channels vom Typ String erzeugen
 		tempChan := make(chan string)
@@ -96,7 +77,7 @@ func populateCluster(ip string, count int) {
 			defer wg.Done()
 			limit <- 1
 
-			stmt = session.Query("INSERT INTO cpuStats (timestamp, temperature, frequency) VALUES (toTimestamp(now()), " + temp + ", " + freq + ");")
+			stmt = session.Query("INSERT INTO cpuStats (timestamp, temperature, frequency) VALUES (toTimestamp(now()), ?, ?)", temp, freq)
 			err := stmt.Exec()
 			if err != nil {
 				fmt.Println(err)
