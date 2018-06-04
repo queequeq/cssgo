@@ -62,8 +62,8 @@ func populateCluster(ip string, count int) {
 	fmt.Println("Erstelle " + strconv.Itoa(count) + " Einträge...")
 	for i := 0; i < count; i++ {
 		// Channels vom Typ String erzeugen
-		tempChan := make(chan string)
-		freqChan := make(chan string)
+		tempChan := make(chan float64)
+		freqChan := make(chan int)
 
 		// Goroutinen starten und Channels übergeben
 		go cpuTemp(tempChan)
@@ -73,7 +73,7 @@ func populateCluster(ip string, count int) {
 		freq := <-freqChan
 
 		// Werte aus den Channels auslesen und Eintrag in die Datenbank schreiben. Abbrechen, falls ein Fehler auftritt
-		go func(session *gocql.Session, temp string, freq string) {
+		go func(session *gocql.Session, temp float64, freq int) {
 			defer wg.Done()
 			limit <- 1
 
